@@ -1,20 +1,38 @@
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey
+from sqlalchemy.orm import relationship
+from .database import Base
 import datetime
 
-class Task:
-    def __init__(self, id, description, start_time, end_time, hourly_rate):
-        self.id = id
-        self.description = description
-        self.start_time = datetime.datetime.fromisoformat(start_time)
-        self.end_time = datetime.datetime.fromisoformat(end_time)
-        self.hourly_rate = hourly_rate
+class Project(Base):
+    __tablename__ = "projects"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, index=True)
+    description = Column(String, nullable=True)
+    
+    # This relationship links Project to Task
+    tasks = relationship("Task", back_populates="project")
 
-    def calculate_duration_hours(self):
-        """Llogarit kohëzgjatjen e detyrës në orë."""
-        if self.end_time and self.start_time:
-            duration = self.end_time - self.start_time
-            return duration.total_seconds() / 3600
-        return 0
+class Task(Base):
+    __tablename__ = "tasks"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, index=True)
+    hourly_rate = Column(Float, default=0.0)
+    project_id = Column(Integer, ForeignKey("projects.id"))
+    
+    # These relationships link Task to Project and TimeEntry
+    project = relationship("Project", back_populates="tasks")
+    time_entries = relationship("TimeEntry", back_populates="task")
 
-    def calculate_payment(self):
-        """Llogarit pagesën totale bazuar në kohëzgjatjen dhe tarifën për orë."""
-        return self.calculate_duration_hours() * self.hourly_rate
+class TimeEntry(Base):
+    __tablename__ = "time_entries"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    start_time = Column(DateTime, default=datetime.datetime.utcnow)
+    end_time = Column(DateTime, nullable=True)
+    hours_worked = Column(Float, default=0.0)
+    task_id = Column(Integer, ForeignKey("tasks.id"))
+    
+    # This relationship links TimeEntry to Task
+    task = relationship("Task", back_populates="time_entries")
